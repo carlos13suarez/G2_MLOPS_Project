@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Environments
+.env
+.venv/
+env/
+venv/
+
+# Tooling
+.pytest_cache/
+.mypy_cache/
+.coverage
+dist/
+build/
+
+# OS and IDE
+.DS_Store
+.vscode/
+.idea/
+
+# -----------------------------
+# Data
+# -----------------------------
+data/**
+!data/
+!data/raw/
+!data/processed/
+!data/inference/
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/inference/.gitkeep
+
+# -----------------------------
+# Models
+# -----------------------------
+models/**
+!models/model.joblib
+!models/
+!models/.gitkeep
+
+# -----------------------------
+# Reports
+# -----------------------------
+reports/**
+!reports/
+!reports/.gitkeep
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Logs
+logs/
+*.log
+
+# Weights & Biases
+wandb/
