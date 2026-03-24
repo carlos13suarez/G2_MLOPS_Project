@@ -32,8 +32,9 @@ problem:
 # 4. SPLIT
 # ---------------------------------------------------------------------------
 split:
-  n_folds: 5       # Number of cross-validation folds used during training
+  n_folds: 2 # Number of cross-validation folds used during training
   random_state: 42
+  shuffle: true
 
 # ---------------------------------------------------------------------------
 # 5. TRAINING

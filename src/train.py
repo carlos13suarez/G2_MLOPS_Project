@@ -45,6 +45,9 @@ logger = logging.getLogger(__name__)
 def train_model(
     df: pd.DataFrame,
     target_column: str,
+    n_folds: int = 5,
+    random_state: int = 42,
+    shuffle: bool = True,
 ) -> tuple:
     """
     Runs 5-fold CV on the full dataset (Model 5), then refits on all rows.
@@ -85,9 +88,9 @@ def train_model(
             f"[train] Target column '{target_column}' not found in DataFrame."
         )
 
-    if len(df) < 5:
+    if len(df) < n_folds:
         raise ValueError(
-            "[train] At least 5 rows are required for 5-fold cross-validation."
+            f"[train] At least {n_folds} rows are required for {n_folds}-fold cross-validation."
         )
 
     if df[target_column].isna().any():
@@ -108,7 +111,7 @@ def train_model(
     n_total = len(df)
 
     # K-Fold CV
-    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    kf = KFold(n_splits=n_folds, shuffle=shuffle, random_state=random_state)
 
     # Collect per-fold metrics, then average at the end.
     r2_scores, mae_scores, rmse_scores = [], [], []

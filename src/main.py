@@ -56,7 +56,8 @@ def _load_config(config_path: Path) -> dict:
 
 
 def _require_section(cfg: dict, key: str) -> dict:
-    """Return cfg[key] if it exists and is a dict. Raises KeyError with clear message if not."""
+    """Return cfg[key] if it exists and is a dict. Raises KeyError with clear
+      message if not."""
     if key not in cfg:
         raise KeyError(f"Required section '{key}' missing from config.yaml")
     if not isinstance(cfg[key], dict):
@@ -67,7 +68,8 @@ def _require_section(cfg: dict, key: str) -> dict:
 
 
 def _require_str(section: dict, key: str) -> str:
-    """Return section[key] if it exists and is a non-empty string. Raises if missing or empty."""
+    """Return section[key] if it exists and is a non-empty string. Raises if
+      missing or empty."""
     if key not in section:
         raise KeyError(f"Required key '{key}' missing from config section")
     value = section[key]
@@ -79,7 +81,8 @@ def _require_str(section: dict, key: str) -> str:
 
 
 def _resolve_path(project_root: Path, relative: str) -> Path:
-    """Join project_root with a relative path string from config. Returns absolute Path."""
+    """Join project_root with a relative path string from config. Returns
+      absolute Path."""
     return (project_root / relative).resolve()
 
 
@@ -88,13 +91,15 @@ def _resolve_path(project_root: Path, relative: str) -> Path:
 # ---------------------------------------------------------------------------
 
 def _wandb_get_str(cfg: dict, key: str, default: str = "") -> str:
-    """Safely get a string value from cfg['wandb'][key]. Returns default if missing."""
+    """Safely get a string value from cfg['wandb'][key]. Returns default if
+      missing."""
     value = cfg.get("wandb", {}).get(key, default)
     return value if isinstance(value, str) else default
 
 
 def _wandb_get_bool(cfg: dict, key: str, default: bool = False) -> bool:
-    """Safely get a bool value from cfg['wandb'][key]. Returns default if missing."""
+    """Safely get a bool value from cfg['wandb'][key]. Returns default if
+      missing."""
     value = cfg.get("wandb", {}).get(key, default)
     return bool(value) if isinstance(value, bool) else default
 
@@ -117,24 +122,36 @@ def main() -> None:
     cfg = _load_config(project_root / "config.yaml")
 
     # 4. Extract sections
-    paths_cfg      = _require_section(cfg, "paths")
-    logging_cfg    = _require_section(cfg, "logging")
-    problem_cfg    = _require_section(cfg, "problem")
-    split_cfg      = _require_section(cfg, "split")
-    training_cfg   = _require_section(cfg, "training")  # noqa: F841 — read for logging
-    features_cfg   = _require_section(cfg, "features")
-    validation_cfg = _require_section(cfg, "validation")  # noqa: F841 — available for future checks
+    paths_cfg = _require_section(cfg, "paths")
+    logging_cfg = _require_section(cfg, "logging")
+    problem_cfg = _require_section(cfg, "problem")
+    split_cfg = _require_section(cfg, "split")
+    training_cfg = _require_section(cfg, "training")
+    features_cfg = _require_section(cfg, "features")
+    validation_cfg = _require_section(cfg, "validation")
     evaluation_cfg = _require_section(cfg, "evaluation")
-    run_cfg        = _require_section(cfg, "run")
+    run_cfg = _require_section(cfg, "run")
 
     # 5. Resolve all paths from config (all absolute, relative to project root)
-    raw_data_path             = _resolve_path(project_root, _require_str(paths_cfg, "raw_data"))
-    processed_data_path       = _resolve_path(project_root, _require_str(paths_cfg, "processed_data"))
-    model_artifact_path       = _resolve_path(project_root, _require_str(paths_cfg, "model_artifact"))
-    inference_data_path       = _resolve_path(project_root, _require_str(paths_cfg, "inference_data"))
-    predictions_artifact_path = _resolve_path(project_root, _require_str(paths_cfg, "predictions_artifact"))
-    log_file_path             = _resolve_path(project_root, _require_str(paths_cfg, "log_file"))
-    reports_dir               = predictions_artifact_path.parent  # reports/
+    raw_data_path = _resolve_path(
+        project_root, _require_str(paths_cfg, "raw_data")
+        )
+    processed_data_path = _resolve_path(
+        project_root, _require_str(paths_cfg, "processed_data")
+        )
+    model_artifact_path = _resolve_path(
+        project_root, _require_str(paths_cfg, "model_artifact")
+        )
+    inference_data_path = _resolve_path(
+        project_root, _require_str(paths_cfg, "inference_data")
+        )
+    predictions_artifact_path = _resolve_path(
+        project_root, _require_str(paths_cfg, "predictions_artifact")
+        )
+    log_file_path = _resolve_path(
+        project_root, _require_str(paths_cfg, "log_file")
+        )
+    reports_dir = predictions_artifact_path.parent  # reports/
 
     # 6. Set up logging (must happen before any logger.* calls below)
     configure_logging(
@@ -146,10 +163,10 @@ def main() -> None:
     logger.info("Housing Prices pipeline starting")
 
     target_column = _require_str(problem_cfg, "target_column")
-    log_to_wandb  = bool(run_cfg.get("log_to_wandb", False))
+    log_to_wandb = bool(run_cfg.get("log_to_wandb", False))
 
     # Build the full required-column list from config for training validation.
-    # Order: target first, then all feature groups — mirrors schema.py contract.
+    # Order: target first, then all feature groups — mirrors schema.py.
     feature_cols = (
         features_cfg.get("log_transform_cols", [])
         + features_cfg.get("numeric_passthrough", [])
@@ -185,10 +202,16 @@ def main() -> None:
         # 10. LOAD raw training data
         # ------------------------------------------------------------------
         df_raw = load_raw_data(raw_data_path)
-        logger.info("Raw data loaded: %d rows, %d cols", df_raw.shape[0], df_raw.shape[1])
+        logger.info(
+            "Raw data loaded: %d rows, %d cols",
+            df_raw.shape[0], df_raw.shape[1]
+            )
 
         if wandb_run:
-            wandb.log({"data/raw_rows": df_raw.shape[0], "data/raw_cols": df_raw.shape[1]})
+            wandb.log(
+                {"data/raw_rows": df_raw.shape[0],
+                 "data/raw_cols": df_raw.shape[1]}
+                )
 
         # ------------------------------------------------------------------
         # 11. CLEAN
@@ -196,7 +219,10 @@ def main() -> None:
         df_clean = clean_dataframe(df_raw)
 
         if wandb_run:
-            wandb.log({"data/clean_rows": df_clean.shape[0], "data/clean_cols": df_clean.shape[1]})
+            wandb.log(
+                {"data/clean_rows": df_clean.shape[0],
+                 "data/clean_cols": df_clean.shape[1]}
+                )
 
         # ------------------------------------------------------------------
         # 12. VALIDATE (full schema including target)
@@ -210,7 +236,9 @@ def main() -> None:
         logger.info("Processed data saved → %s", processed_data_path)
 
         if wandb_run and _wandb_get_bool(cfg, "log_dataset"):
-            dataset_artifact = wandb.Artifact(name="housing-dataset", type="dataset")
+            dataset_artifact = wandb.Artifact(
+                name="housing-dataset", type="dataset"
+                )
             dataset_artifact.add_file(str(processed_data_path))
             wandb.log_artifact(dataset_artifact)
             logger.info("Dataset artifact logged to W&B")
@@ -222,11 +250,18 @@ def main() -> None:
         # ------------------------------------------------------------------
         logger.info(
             "Training: model_type=%s  n_folds=%d  target=%s",
-            training_cfg.get("regression", {}).get("model_type", "linear_regression"),
+            training_cfg.get("regression", {})
+            .get("model_type", "linear_regression"),
             split_cfg.get("n_folds", 5),
             target_column,
         )
-        model_pipeline, cv_results = train_model(df_clean, target_column)
+        n_folds = split_cfg.get("n_folds", 5)
+        random_state = split_cfg.get("random_state", 42)
+        shuffle = split_cfg.get("shuffle", True)
+        model_pipeline, cv_results = train_model(
+            df_clean, target_column,
+            n_folds=n_folds, random_state=random_state, shuffle=shuffle,
+            )
 
         # ------------------------------------------------------------------
         # 15. EVALUATE
@@ -263,7 +298,9 @@ def main() -> None:
         logger.info("Model saved → %s", model_artifact_path)
 
         if wandb_run and _wandb_get_bool(cfg, "log_model"):
-            artifact_name = _wandb_get_str(cfg, "model_artifact_name", "housing-model")
+            artifact_name = _wandb_get_str(
+                cfg, "model_artifact_name", "housing-model"
+                )
             model_artifact = wandb.Artifact(name=artifact_name, type="model")
             model_artifact.add_file(str(model_artifact_path))
             wandb.log_artifact(model_artifact)
@@ -277,22 +314,31 @@ def main() -> None:
         # 17. INFERENCE
         # ------------------------------------------------------------------
         df_infer_raw = load_csv(inference_data_path)
-        logger.info("Inference data loaded: %d rows, %d cols", df_infer_raw.shape[0], df_infer_raw.shape[1])
+        logger.info(
+            "Inference data loaded: %d rows, %d cols",
+            df_infer_raw.shape[0], df_infer_raw.shape[1]
+            )
 
-        # Clean inference data — no target column present; cleaning skips it gracefully
+        # Clean inference data — no target column present
         df_infer_clean = clean_dataframe(df_infer_raw)
 
         # Validate feature columns only (no target in inference data)
         validate_dataframe(df_infer_clean, required_columns=feature_cols)
 
-        df_predictions = run_inference(pipeline=model_pipeline, X_infer=df_infer_clean)
+        df_predictions = run_inference(
+            pipeline=model_pipeline,
+            X_infer=df_infer_clean
+            )
 
         if run_cfg.get("save_predictions", False):
             save_csv(df_predictions, predictions_artifact_path)
             logger.info("Predictions saved → %s", predictions_artifact_path)
 
             if wandb_run and _wandb_get_bool(cfg, "log_predictions"):
-                pred_artifact = wandb.Artifact(name="housing-predictions", type="predictions")
+                pred_artifact = wandb.Artifact(
+                    name="housing-predictions",
+                    type="predictions"
+                    )
                 pred_artifact.add_file(str(predictions_artifact_path))
                 wandb.log_artifact(pred_artifact)
                 logger.info("Predictions artifact logged to W&B")

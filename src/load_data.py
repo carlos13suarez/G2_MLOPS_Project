@@ -18,12 +18,15 @@ Educational Goal:
     transform predictably.
 """
 
+# Standard library
 import logging
 import shutil
 from pathlib import Path
 
+# Third-party
 import pandas as pd
 
+# Local
 from src.utils import load_csv, save_csv
 
 logger = logging.getLogger(__name__)
@@ -37,7 +40,8 @@ def _create_dummy_housing_data(raw_data_path: Path) -> pd.DataFrame:
     """Create and persist deterministic fallback data for scaffolding."""
     # Intentional loud warning so dummy usage is visible in logs.
     logger.warning(
-        "LOUD WARNING: CREATING DUMMY DATASET FOR SCAFFOLDING ONLY. UPDATE SETTINGS."
+        "LOUD WARNING: CREATING DUMMY DATASET FOR SCAFFOLDING ONLY."
+        " UPDATE SETTINGS."
     )
 
     # Deterministic tiny dataset that matches the expected Housing schema.
