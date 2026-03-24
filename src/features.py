@@ -30,8 +30,6 @@ from typing import Optional, List
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
-from src.schema import BINARY_COLS, CATEGORICAL_COLS, NUMERIC_COLS
-
 logger = logging.getLogger(__name__)
 
 
@@ -60,10 +58,9 @@ def get_feature_preprocessor(
     """
     logger.info("Building feature recipe from configuration")
 
-    # Use schema defaults unless caller intentionally overrides.
-    numeric_cols = numeric_cols or NUMERIC_COLS
-    categorical_cols = categorical_cols or CATEGORICAL_COLS
-    binary_cols = binary_cols or BINARY_COLS
+    numeric_cols = numeric_cols or []
+    categorical_cols = categorical_cols or []
+    binary_cols = binary_cols or []
 
     # OneHotEncoder
     try:

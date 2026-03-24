@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 from src.clean_data import clean_dataframe
 from src.evaluate import evaluate_model, save_evaluation_plots
 from src.infer import run_inference
-from src.load_data import load_raw_data
+from src.load_data import ensure_raw_data_exists, load_raw_data
 from src.logger import configure_logging
 from src.train import train_model
 from src.utils import load_csv, save_csv, save_model
@@ -123,6 +123,7 @@ def main() -> None:
 
     # 4. Extract sections
     paths_cfg = _require_section(cfg, "paths")
+    data_cfg = _require_section(cfg, "data")
     logging_cfg = _require_section(cfg, "logging")
     problem_cfg = _require_section(cfg, "problem")
     split_cfg = _require_section(cfg, "split")
@@ -174,6 +175,8 @@ def main() -> None:
         + features_cfg.get("categorical_onehot", [])
     )
     required_columns = [target_column] + feature_cols
+    binary_cols = features_cfg.get("binary_cols", [])
+    valid_furnishing_values = features_cfg.get("valid_furnishing_values", [])
 
     # 8. Initialise W&B run
     wandb_run = None
@@ -201,7 +204,22 @@ def main() -> None:
         # ------------------------------------------------------------------
         # 10. LOAD raw training data
         # ------------------------------------------------------------------
-        df_raw = load_raw_data(raw_data_path)
+        fetch_if_missing = data_cfg.get("fetch_if_missing", True)
+        use_dummy_on_failure = data_cfg.get("use_dummy_on_failure", True)
+        kaggle_dataset = data_cfg.get("kaggle_dataset", "yasserh/housing-prices-dataset")
+        kaggle_filename = data_cfg.get("kaggle_filename", "Housing.csv")
+        ensure_raw_data_exists(
+            raw_data_path,
+            fetch_if_missing=fetch_if_missing,
+            kaggle_dataset=kaggle_dataset,
+            kaggle_filename=kaggle_filename,
+        )
+        df_raw = load_raw_data(
+            raw_data_path,
+            use_dummy_on_failure=use_dummy_on_failure,
+            kaggle_dataset=kaggle_dataset,
+            kaggle_filename=kaggle_filename,
+        )
         logger.info(
             "Raw data loaded: %d rows, %d cols",
             df_raw.shape[0], df_raw.shape[1]
@@ -216,7 +234,17 @@ def main() -> None:
         # ------------------------------------------------------------------
         # 11. CLEAN
         # ------------------------------------------------------------------
-        df_clean = clean_dataframe(df_raw)
+        drop_missing_rows = data_cfg.get("drop_missing_rows", False)
+        allow_duplicates = data_cfg.get("allow_duplicates", False)
+        binary_cols = features_cfg.get("binary_cols", [])
+        log_transform_cols = features_cfg.get("log_transform_cols", [])
+        df_clean = clean_dataframe(
+            df_raw,
+            binary_cols=binary_cols,
+            log_transform_cols=log_transform_cols,
+            drop_missing_rows=drop_missing_rows,
+            allow_duplicates=allow_duplicates,
+        )
 
         if wandb_run:
             wandb.log(
@@ -227,7 +255,12 @@ def main() -> None:
         # ------------------------------------------------------------------
         # 12. VALIDATE (full schema including target)
         # ------------------------------------------------------------------
-        validate_dataframe(df_clean, required_columns=required_columns)
+        validate_dataframe(
+            df_clean,
+            required_columns=required_columns,
+            binary_cols=binary_cols,
+            valid_furnishing_values=valid_furnishing_values,
+        )
 
         # ------------------------------------------------------------------
         # 13. SAVE PROCESSED
@@ -258,15 +291,24 @@ def main() -> None:
         n_folds = split_cfg.get("n_folds", 5)
         random_state = split_cfg.get("random_state", 42)
         shuffle = split_cfg.get("shuffle", True)
+        fit_intercept = training_cfg.get("regression", {}).get("fit_intercept", True)
+        numeric_cols = features_cfg.get("numeric_passthrough", [])
+        categorical_cols = features_cfg.get("categorical_onehot", [])
         model_pipeline, cv_results = train_model(
             df_clean, target_column,
             n_folds=n_folds, random_state=random_state, shuffle=shuffle,
+            fit_intercept=fit_intercept,
+            numeric_cols=numeric_cols,
+            categorical_cols=categorical_cols,
+            binary_cols=binary_cols,
             )
 
         # ------------------------------------------------------------------
         # 15. EVALUATE
         # ------------------------------------------------------------------
-        metrics = evaluate_model(cv_results)
+        n_bins_residuals = evaluation_cfg.get("n_bins_residuals", 30)
+        plot_title_suffix = evaluation_cfg.get("plot_title_suffix", "K-Fold CV")
+        metrics = evaluate_model(cv_results, n_folds=n_folds)
         logger.info("CV metrics: %s", metrics)
 
         if wandb_run:
@@ -278,7 +320,13 @@ def main() -> None:
             })
 
         if evaluation_cfg.get("save_plots", False):
-            save_evaluation_plots(cv_results, reports_dir=reports_dir)
+            save_evaluation_plots(
+                cv_results,
+                reports_dir=reports_dir,
+                n_folds=n_folds,
+                plot_title_suffix=plot_title_suffix,
+                n_bins_residuals=n_bins_residuals,
+            )
 
             if wandb_run and _wandb_get_bool(cfg, "log_plots"):
                 wandb.log({
@@ -320,10 +368,21 @@ def main() -> None:
             )
 
         # Clean inference data — no target column present
-        df_infer_clean = clean_dataframe(df_infer_raw)
+        df_infer_clean = clean_dataframe(
+            df_infer_raw,
+            binary_cols=binary_cols,
+            log_transform_cols=log_transform_cols,
+            drop_missing_rows=drop_missing_rows,
+            allow_duplicates=allow_duplicates,
+        )
 
         # Validate feature columns only (no target in inference data)
-        validate_dataframe(df_infer_clean, required_columns=feature_cols)
+        validate_dataframe(
+            df_infer_clean,
+            required_columns=feature_cols,
+            binary_cols=binary_cols,
+            valid_furnishing_values=valid_furnishing_values,
+        )
 
         df_predictions = run_inference(
             pipeline=model_pipeline,

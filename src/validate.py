@@ -20,12 +20,15 @@ import logging
 
 import pandas as pd
 
-from src.schema import BINARY_COLS, VALID_FURNISHING
-
 logger = logging.getLogger(__name__)
 
 
-def validate_dataframe(df: pd.DataFrame, required_columns: list[str]) -> bool:
+def validate_dataframe(
+    df: pd.DataFrame,
+    required_columns: list[str],
+    binary_cols: list = None,
+    valid_furnishing_values: list = None,
+) -> bool:
     """
     Validates the cleaned DataFrame before training.
 
@@ -74,7 +77,8 @@ def validate_dataframe(df: pd.DataFrame, required_columns: list[str]) -> bool:
 
     # 5. Binary columns must be 0 or 1
     # Binary domain constraints prevent silent encoding mistakes.
-    for col in BINARY_COLS:
+    _binary_cols = binary_cols if binary_cols is not None else []
+    for col in _binary_cols:
         if col in df.columns:
             bad = df[~df[col].isin([0, 1])][col]
             if not bad.empty:
@@ -85,11 +89,12 @@ def validate_dataframe(df: pd.DataFrame, required_columns: list[str]) -> bool:
 
     # 6. furnishingstatus must be a known category
     if "furnishingstatus" in df.columns:
-        unknown = set(df["furnishingstatus"].unique()) - VALID_FURNISHING
+        _valid_furnishing = set(valid_furnishing_values) if valid_furnishing_values is not None else set()
+        unknown = set(df["furnishingstatus"].unique()) - _valid_furnishing
         if unknown:
             raise ValueError(
                 f"[validate] Unknown furnishingstatus values: {unknown}. "
-                f"Expected: {VALID_FURNISHING}"
+                f"Expected: {_valid_furnishing}"
             )
 
     logger.info(

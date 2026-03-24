@@ -31,10 +31,6 @@ from src.utils import load_csv, save_csv
 
 logger = logging.getLogger(__name__)
 
-# Canonical upstream source metadata.
-KAGGLE_DATASET = "yasserh/housing-prices-dataset"
-KAGGLE_FILENAME = "Housing.csv"
-
 
 def _create_dummy_housing_data(raw_data_path: Path) -> pd.DataFrame:
     """Create and persist deterministic fallback data for scaffolding."""
@@ -73,6 +69,8 @@ def _create_dummy_housing_data(raw_data_path: Path) -> pd.DataFrame:
 def fetch_raw_data_from_kaggle(
     destination: Path,
     overwrite: bool = False,
+    kaggle_dataset: str = "yasserh/housing-prices-dataset",
+    kaggle_filename: str = "Housing.csv",
 ) -> Path:
     """
     Explicitly downloads Housing.csv from Kaggle into destination.
@@ -99,13 +97,13 @@ def fetch_raw_data_from_kaggle(
     if destination.exists() and not overwrite:
         return destination
 
-    logger.info("Downloading '%s' from Kaggle...", KAGGLE_DATASET)
+    logger.info("Downloading '%s' from Kaggle...", kaggle_dataset)
 
     # kagglehub.dataset_download returns the path to the local cache folder
-    cache_dir = Path(kagglehub.dataset_download(KAGGLE_DATASET))
+    cache_dir = Path(kagglehub.dataset_download(kaggle_dataset))
 
     # Find the CSV inside the downloaded folder
-    csv_candidates = sorted(cache_dir.rglob(KAGGLE_FILENAME))
+    csv_candidates = sorted(cache_dir.rglob(kaggle_filename))
     if len(csv_candidates) != 1:
         available_files = sorted(
             str(path.relative_to(cache_dir))
@@ -113,7 +111,7 @@ def fetch_raw_data_from_kaggle(
         )
         raise FileNotFoundError(
             "[load_data] Expected exactly one "
-            f"'{KAGGLE_FILENAME}' in dataset cache, found "
+            f"'{kaggle_filename}' in dataset cache, found "
             f"{len(csv_candidates)} at {cache_dir}. "
             f"Files present: {available_files}"
         )
@@ -129,6 +127,8 @@ def fetch_raw_data_from_kaggle(
 def ensure_raw_data_exists(
     raw_data_path: Path,
     fetch_if_missing: bool = False,
+    kaggle_dataset: str = "yasserh/housing-prices-dataset",
+    kaggle_filename: str = "Housing.csv",
 ) -> Path:
     """
     Ensures the raw CSV file exists on disk.
@@ -149,12 +149,18 @@ def ensure_raw_data_exists(
         )
 
     # Explicitly fetch only when caller opted in.
-    return fetch_raw_data_from_kaggle(raw_data_path)
+    return fetch_raw_data_from_kaggle(
+        raw_data_path,
+        kaggle_dataset=kaggle_dataset,
+        kaggle_filename=kaggle_filename,
+    )
 
 
 def load_raw_data(
     raw_data_path: Path,
     use_dummy_on_failure: bool = True,
+    kaggle_dataset: str = "yasserh/housing-prices-dataset",
+    kaggle_filename: str = "Housing.csv",
 ) -> pd.DataFrame:
     """
     Loads raw CSV from disk with fail-fast file/read validation.
@@ -189,7 +195,12 @@ def load_raw_data(
 
         try:
             logger.info("Attempting Kaggle fetch before dummy fallback...")
-            ensure_raw_data_exists(raw_data_path, fetch_if_missing=True)
+            ensure_raw_data_exists(
+                raw_data_path,
+                fetch_if_missing=True,
+                kaggle_dataset=kaggle_dataset,
+                kaggle_filename=kaggle_filename,
+            )
             df = load_csv(raw_data_path)
         except Exception as fetch_exc:
             # Last-resort behavior: synthesize a valid dummy dataset.

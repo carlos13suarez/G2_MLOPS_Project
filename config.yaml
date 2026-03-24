@@ -15,7 +15,18 @@ paths:
   log_file: "logs/pipeline.log"
 
 # ---------------------------------------------------------------------------
-# 2. LOGGING
+# 2. DATA
+# ---------------------------------------------------------------------------
+data:
+  fetch_if_missing: true
+  use_dummy_on_failure: true
+  kaggle_dataset: "yasserh/housing-prices-dataset"
+  kaggle_filename: "Housing.csv"
+  drop_missing_rows: false
+  allow_duplicates: false
+
+# ---------------------------------------------------------------------------
+# 3. LOGGING
 # ---------------------------------------------------------------------------
 logging:
   level: "INFO"          # Valid values: DEBUG, INFO, WARNING, ERROR
@@ -77,6 +88,28 @@ features:
   # Number of bins used for any discretization / binning steps
   n_bins: 5
 
+  # Full ordered list of columns expected in the cleaned training DataFrame
+  required_columns:
+    - "price"
+    - "area"
+    - "bedrooms"
+    - "bathrooms"
+    - "stories"
+    - "mainroad"
+    - "guestroom"
+    - "basement"
+    - "hotwaterheating"
+    - "airconditioning"
+    - "parking"
+    - "prefarea"
+    - "furnishingstatus"
+
+  # Allowed domain values for furnishingstatus
+  valid_furnishing_values:
+    - "furnished"
+    - "semi-furnished"
+    - "unfurnished"
+
 # ---------------------------------------------------------------------------
 # 7. VALIDATION
 # ---------------------------------------------------------------------------
@@ -100,6 +133,8 @@ evaluation:
     - "r2"       # Coefficient of determination
     - "adj_r2"   # R² penalised for number of predictors; more honest with many features
   save_plots: true             # Save residual / prediction plots to reports/
+  n_bins_residuals: 30
+  plot_title_suffix: "K-Fold CV"
 
 # ---------------------------------------------------------------------------
 # 9. RUN TOGGLES

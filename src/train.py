@@ -9,7 +9,7 @@ Model 5:
   - Inside every fold: OHE + StandardScaler fit on fold-train only (no leakage)
     - Fits LinearRegression on log1p(price), predicts,
         then applies expm1 to score
-  - Reports mean metrics across all 5 folds
+  - Reports mean metrics across all folds
     - Finally refits on all rows so the saved model has seen every data point
 
 Input: Full cleaned DataFrame
@@ -48,9 +48,14 @@ def train_model(
     n_folds: int = 5,
     random_state: int = 42,
     shuffle: bool = True,
+    fit_intercept: bool = True,
+    numeric_cols: list = None,
+    categorical_cols: list = None,
+    binary_cols: list = None,
 ) -> tuple:
     """
-    Runs 5-fold CV on the full dataset (Model 5), then refits on all rows.
+    Runs n_folds-fold CV on the full dataset (Model 5),
+    then refits on all rows.
 
     Inputs:
         df: Full cleaned pd.DataFrame from clean_data.py.
@@ -67,7 +72,7 @@ def train_model(
                         pipeline.predict() returns log(price).
                         Apply np.expm1() in infer.py to recover price scale.
         cv_results: dict with keys r2, adjusted_r2, mae, rmse
-                        (mean across 5 folds, on original price scale)
+                        (mean across n_folds folds, on original price scale)
                         These are the numbers comparable to the notebook.
     """
     logger.info(
@@ -90,7 +95,8 @@ def train_model(
 
     if len(df) < n_folds:
         raise ValueError(
-            f"[train] At least {n_folds} rows are required for {n_folds}-fold cross-validation."
+            f"[train] At least {n_folds} rows are required for "
+            f"{n_folds}-fold cross-validation."
         )
 
     if df[target_column].isna().any():
@@ -117,7 +123,7 @@ def train_model(
     r2_scores, mae_scores, rmse_scores = [], [], []
     all_y_true, all_y_pred = [], []
 
-    logger.info("Running 5-fold CV on %d rows...", n_total)
+    logger.info("Running %d-fold CV on %d rows...", n_folds, n_total)
 
     for fold_num, (train_idx, test_idx) in enumerate(kf.split(X), start=1):
 
@@ -128,8 +134,12 @@ def train_model(
 
         # Fresh preprocessor per fold - fit ONLY on fold-train (no leakage)
         fold_pipeline = Pipeline([
-            ("preprocess", get_feature_preprocessor()),
-            ("model", LinearRegression()),
+            ("preprocess", get_feature_preprocessor(
+                numeric_cols=numeric_cols,
+                categorical_cols=categorical_cols,
+                binary_cols=binary_cols,
+            )),
+            ("model", LinearRegression(fit_intercept=fit_intercept)),
         ])
 
         # model.fit(X_train, np.log1p(y_train))
@@ -165,8 +175,12 @@ def train_model(
     logger.info("Refitting final Pipeline on ALL rows...")
 
     final_pipeline = Pipeline([
-        ("preprocess", get_feature_preprocessor()),
-        ("model", LinearRegression()),
+        ("preprocess", get_feature_preprocessor(
+            numeric_cols=numeric_cols,
+            categorical_cols=categorical_cols,
+            binary_cols=binary_cols,
+        )),
+        ("model", LinearRegression(fit_intercept=fit_intercept)),
     ])
     final_pipeline.fit(X, np.log1p(y))
 
@@ -190,7 +204,9 @@ def train_model(
     }
 
     logger.info(
-        "CV mean over all 5 folds: R²=%.3f  Adj-R²=%.3f  MAE=%.0f  RMSE=%.0f",
+        "CV mean over all %d folds: "
+        "R²=%.3f  Adj-R²=%.3f  MAE=%.0f  RMSE=%.0f",
+        n_folds,
         mean_r2, adj_r2, mean_mae, mean_rmse,
     )
     logger.info(
