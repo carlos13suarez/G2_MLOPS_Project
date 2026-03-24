@@ -44,7 +44,6 @@ from src.validate import validate_dataframe
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-BATCH_SIZE = 50
 
 
 # ---------------------------------------------------------------------------
@@ -179,6 +178,10 @@ async def lifespan(app: FastAPI):
         + features_cfg.get("categorical_onehot", [])
     )
     app.state.feature_cols = feature_cols
+    app.state.binary_cols = features_cfg.get("binary_cols", [])
+    app.state.log_transform_cols = features_cfg.get("log_transform_cols", [])
+    app.state.valid_furnishing_values = features_cfg.get("valid_furnishing_values", [])
+    app.state.batch_size = cfg.get("wandb", {}).get("inference_buffer_size", 50)
 
     model_source = os.getenv("MODEL_SOURCE", "local")
 
@@ -329,6 +332,9 @@ async def predict(
     """
     model_pipeline: Any = request.app.state.model_pipeline
     feature_cols: list[str] = request.app.state.feature_cols
+    binary_cols: list[str] = request.app.state.binary_cols
+    log_transform_cols: list[str] = request.app.state.log_transform_cols
+    valid_furnishing_values: list[str] = request.app.state.valid_furnishing_values
 
     # 1. Convert Pydantic records to raw DataFrame (pre-cleaning format)
     df_raw = pd.DataFrame([r.model_dump() for r in body.records])
@@ -336,7 +342,12 @@ async def predict(
     # 2. Clean — binary encoding + log1p(area), using the same function
     #    as the training pipeline to prevent train/serve skew
     try:
-        df_clean = clean_dataframe(df_raw, allow_duplicates=True)
+        df_clean = clean_dataframe(
+            df_raw,
+            allow_duplicates=True,
+            binary_cols=binary_cols,
+            log_transform_cols=log_transform_cols,
+        )
     except ValueError as exc:
         logger.warning("Cleaning failed for request: %s", exc)
         return JSONResponse(
@@ -346,7 +357,12 @@ async def predict(
 
     # 3. Validate feature schema — no target column in inference data
     try:
-        validate_dataframe(df_clean, required_columns=feature_cols)
+        validate_dataframe(
+            df_clean,
+            required_columns=feature_cols,
+            binary_cols=binary_cols,
+            valid_furnishing_values=valid_furnishing_values,
+        )
     except ValueError as exc:
         logger.warning("Validation failed for request: %s", exc)
         return JSONResponse(
@@ -368,7 +384,7 @@ async def predict(
     rows_to_flush: list[dict] = []
     with _buffer_lock:
         _inference_buffer.extend(rows_for_buffer)
-        if len(_inference_buffer) >= BATCH_SIZE:
+        if len(_inference_buffer) >= request.app.state.batch_size:
             rows_to_flush = _inference_buffer.copy()
             _inference_buffer.clear()
 

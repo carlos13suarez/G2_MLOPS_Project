@@ -98,6 +98,14 @@ def _make_test_config(tmp_path: Path, raw_csv: Path, infer_csv: Path) -> dict:
                 "fit_intercept": True,
             }
         },
+        "data": {
+            "fetch_if_missing": True,
+            "use_dummy_on_failure": True,
+            "kaggle_dataset": "yasserh/housing-prices-dataset",
+            "kaggle_filename": "Housing.csv",
+            "drop_missing_rows": False,
+            "allow_duplicates": False,
+        },
         "features": {
             "log_transform_cols": ["area"],
             "binary_cols": [
@@ -107,6 +115,7 @@ def _make_test_config(tmp_path: Path, raw_csv: Path, infer_csv: Path) -> dict:
             "categorical_onehot": ["furnishingstatus"],
             "numeric_passthrough": ["bedrooms", "bathrooms", "stories", "parking"],
             "n_bins": 5,
+            "valid_furnishing_values": ["furnished", "semi-furnished", "unfurnished"],
         },
         "validation": {
             "numeric_non_negative_cols": [
