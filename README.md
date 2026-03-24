@@ -2,7 +2,7 @@
 
 A production-ready MLOps service that generates instant, data-driven price estimates for residential property listings from 12 property attributes.
 
-[![MLOps Quality Gate](https://github.com/carlos13suarez/G2_MLOPS_Project/actions/workflows/ci.yml/badge.svg)](https://github.com/carlos13suarez/G2_MLOPS_Project/actions/workflows/ci.yml)
+[![MLOps Quality Gate](https://github.com/robsrot/G2_MLOPS_Project/actions/workflows/ci.yml/badge.svg)](https://github.com/robsrot/G2_MLOPS_Project/actions/workflows/ci.yml)
 [![Live on Render](https://img.shields.io/badge/API-Live%20on%20Render-brightgreen)](https://housing-price-predictor-jfz4.onrender.com/health)
 
 ---
@@ -96,7 +96,6 @@ G2_MLOPS_Project/
 │   ├── logger.py                      # Root logging configuration
 │   ├── load_data.py                   # Data ingestion (local CSV or Kaggle)
 │   ├── clean_data.py                  # Deterministic cleaning and encoding
-│   ├── schema.py                      # Column contracts and domain constants
 │   ├── validate.py                    # Schema, dtype, and value checks
 │   ├── features.py                    # Unfitted ColumnTransformer recipe
 │   ├── train.py                       # 5-fold CV training + final refit
@@ -135,7 +134,6 @@ G2_MLOPS_Project/
     ├── test_infer.py
     ├── test_load_data.py
     ├── test_main.py
-    ├── test_schema.py
     ├── test_train.py
     ├── test_utils.py
     └── test_validate.py
@@ -150,7 +148,7 @@ G2_MLOPS_Project/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/carlos13suarez/G2_MLOPS_Project.git
+git clone https://github.com/robsrot/G2_MLOPS_Project.git
 cd G2_MLOPS_Project
 ```
 
@@ -167,13 +165,13 @@ WANDB_MODEL_ALIAS="prod"
 ### 3. Install the environment from the lockfile
 
 ```bash
-conda-lock install -n housing_prices_mlops conda-lock.yml
+conda-lock install -n mlops conda-lock.yml
 ```
 
 ### 4. Activate
 
 ```bash
-conda activate housing_prices_mlops
+conda activate mlops
 ```
 
 ### 5. Add the dataset
@@ -295,7 +293,7 @@ Triggers on every pull request and push to `main`. Steps:
 
 W&B is fully disabled in CI (`WANDB_MODE=disabled`, `MODEL_SOURCE=local`). No secrets are required.
 
-[View runs →](https://github.com/carlos13suarez/G2_MLOPS_Project/actions)
+[View runs →](https://github.com/robsrot/G2_MLOPS_Project/actions)
 
 ### deploy.yml — Continuous Deployment
 
