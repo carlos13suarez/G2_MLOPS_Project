@@ -277,7 +277,7 @@ def main() -> None:
             logger.info("Dataset artifact logged to W&B")
 
         # ------------------------------------------------------------------
-        # 14. TRAIN — 5-fold CV then final refit on all rows (Model 5)
+        # 14. TRAIN — K-Fold CV then final refit on all rows (Model 5)
         # n_folds=%d and fit_intercept are configured in config.yaml and
         # used by train.py internally; train_model() reads them at import time.
         # ------------------------------------------------------------------

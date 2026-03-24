@@ -1,7 +1,7 @@
 # config.yaml
 # Single source of truth for all non-secret runtime settings.
 # Secrets (WANDB_API_KEY, WANDB_ENTITY, MODEL_SOURCE, WANDB_MODEL_ALIAS) belong in .env only.
-# Code-level constants (column schemas, validation rules) stay in src/schema.py.
+# Code-level constants (column schemas, validation rules) stay in src/ modules.
 
 # ---------------------------------------------------------------------------
 # 1. PATHS
@@ -33,22 +33,22 @@ logging:
   format: "text"         # "text" for human-readable; switch to "json" for structured log ingestion
 
 # ---------------------------------------------------------------------------
-# 3. PROBLEM
+# 4. PROBLEM
 # ---------------------------------------------------------------------------
 problem:
   type: "regression"
   target_column: "price"
 
 # ---------------------------------------------------------------------------
-# 4. SPLIT
+# 5. SPLIT
 # ---------------------------------------------------------------------------
 split:
-  n_folds: 2 # Number of cross-validation folds used during training
+  n_folds: 5 # Number of cross-validation folds used during training
   random_state: 42
   shuffle: true
 
 # ---------------------------------------------------------------------------
-# 5. TRAINING
+# 6. TRAINING
 # ---------------------------------------------------------------------------
 training:
   regression:
@@ -57,7 +57,7 @@ training:
     fit_intercept: true   # Whether to fit a bias term; set false only if data is already centered
 
 # ---------------------------------------------------------------------------
-# 6. FEATURES
+# 7. FEATURES
 # ---------------------------------------------------------------------------
 features:
   # Columns where log1p is applied before scaling to reduce right-skew (see clean_data.py)
@@ -111,7 +111,7 @@ features:
     - "unfurnished"
 
 # ---------------------------------------------------------------------------
-# 7. VALIDATION
+# 8. VALIDATION
 # ---------------------------------------------------------------------------
 validation:
   # Columns that must never be negative after cleaning
@@ -124,7 +124,7 @@ validation:
     - "parking"
 
 # ---------------------------------------------------------------------------
-# 8. EVALUATION
+# 9. EVALUATION
 # ---------------------------------------------------------------------------
 evaluation:
   primary_metric: "rmse"      # Root Mean Squared Error — main model selection criterion
@@ -137,14 +137,14 @@ evaluation:
   plot_title_suffix: "K-Fold CV"
 
 # ---------------------------------------------------------------------------
-# 9. RUN TOGGLES
+# 10. RUN TOGGLES
 # ---------------------------------------------------------------------------
 run:
   log_to_wandb: true       # Set false to disable all W&B logging (e.g. offline runs / CI)
   save_predictions: true   # Persist inference output to paths.predictions_artifact
 
 # ---------------------------------------------------------------------------
-# 10. WANDB
+# 11. WANDB
 # ---------------------------------------------------------------------------
 wandb:
   project: "housing-price-mlops"
